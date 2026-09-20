@@ -1,6 +1,6 @@
 {
     "name": "bit-hub",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "bit:hub - IoT platform for the micro:bit. Devices announce themselves, report sensor values and run threshold rules on-device.",
     "license": "MIT",
     "repo": "github:gaalben/bit-hub",
