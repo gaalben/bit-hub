@@ -17,12 +17,24 @@ https://github.com/gaalben/bit-hub
 
 ### Eszköz (a diák micro:bitje)
 
+A forrást a bejelentésnél adod meg **egyszer** — onnantól magától olvas
+és jelent, ciklus nélkül:
+
 ```blocks
 bithub.start(1, 1)
-bithub.declareSensor(1, BitHubSensor.Temperature)
+bithub.declareSensor(1, BitHubSensor.Temperature, BitHubSource.Builtin)
+bithub.declareSensor(2, BitHubSensor.SoilMoisture, BitHubSource.AnalogP0)
+```
 
+Ha olyan értéket akarsz küldeni, amit a micro:bit nem tud magától olvasni
+(pl. két szenzor különbsége), válaszd a **kézi** forrást, és add meg a
+`jelentés` blokkal:
+
+```blocks
+bithub.start(1, 1)
+bithub.declareSensor(1, BitHubSensor.OtherSensor, BitHubSource.Manual)
 basic.forever(function () {
-    bithub.report(1, input.temperature())
+    bithub.report(1, input.acceleration(Dimension.X))
     basic.pause(500)
 })
 ```

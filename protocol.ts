@@ -44,6 +44,45 @@ enum BitHubSensor {
 }
 
 /**
+ * Honnan olvassa a bit:hub a szenzor értékét.
+ * A bejelentéskor EGYSZER kell megadni — onnantól a háttérszál olvas és
+ * jelent, a diáknak nem kell ciklust írnia, és nem kell a helyszámot
+ * másodszor is eltalálnia.
+ */
+enum BitHubSource {
+    //% block="built-in sensor"
+    //% block.loc.hu="beépített szenzor"
+    Builtin = 0,
+    //% block="P0 (analog)"
+    //% block.loc.hu="P0 (analóg)"
+    AnalogP0 = 1,
+    //% block="P1 (analog)"
+    //% block.loc.hu="P1 (analóg)"
+    AnalogP1 = 2,
+    //% block="P2 (analog)"
+    //% block.loc.hu="P2 (analóg)"
+    AnalogP2 = 3,
+    //% block="P0 (digital)"
+    //% block.loc.hu="P0 (digitális)"
+    DigitalP0 = 4,
+    //% block="P1 (digital)"
+    //% block.loc.hu="P1 (digitális)"
+    DigitalP1 = 5,
+    //% block="P2 (digital)"
+    //% block.loc.hu="P2 (digitális)"
+    DigitalP2 = 6,
+    //% block="P8 (digital)"
+    //% block.loc.hu="P8 (digitális)"
+    DigitalP8 = 7,
+    //% block="P16 (digital)"
+    //% block.loc.hu="P16 (digitális)"
+    DigitalP16 = 8,
+    //% block="manual (report block)"
+    //% block.loc.hu="kézi (jelentés blokkal)"
+    Manual = 99
+}
+
+/**
  * Aktuátortípusok, amelyeket egy bit:hub eszköz bejelenthet.
  */
 enum BitHubActuator {
@@ -178,6 +217,42 @@ namespace bithub {
      */
     export function seconds(): number {
         return Math.idiv(input.runningTime(), 1000) % TIME_MOD
+    }
+
+    /**
+     * Van-e beépített szenzor ehhez a típuskódhoz?
+     * Ha nincs, a bejelentés csendben kézi módra vált — a talajnedvességet
+     * nem tudja magától olvasni a micro:bit, azt lábról kell.
+     */
+    export function hasBuiltin(code: string): boolean {
+        return code == "tmp" || code == "lgt" || code == "snd"
+            || code == "acc" || code == "btn"
+    }
+
+    /** A beépített szenzor olvasása típuskód alapján. */
+    export function readBuiltin(code: string): number {
+        if (code == "tmp") return input.temperature()
+        if (code == "lgt") return input.lightLevel()
+        if (code == "snd") return input.soundLevel()
+        if (code == "acc") return input.acceleration(Dimension.Strength)
+        if (code == "btn") return input.buttonIsPressed(Button.A) ? 1 : 0
+        return 0
+    }
+
+    /** Egy láb olvasása a forrás-kód alapján. */
+    export function readSource(source: BitHubSource, code: string): number {
+        switch (source) {
+            case BitHubSource.Builtin: return readBuiltin(code)
+            case BitHubSource.AnalogP0: return pins.analogReadPin(AnalogPin.P0)
+            case BitHubSource.AnalogP1: return pins.analogReadPin(AnalogPin.P1)
+            case BitHubSource.AnalogP2: return pins.analogReadPin(AnalogPin.P2)
+            case BitHubSource.DigitalP0: return pins.digitalReadPin(DigitalPin.P0)
+            case BitHubSource.DigitalP1: return pins.digitalReadPin(DigitalPin.P1)
+            case BitHubSource.DigitalP2: return pins.digitalReadPin(DigitalPin.P2)
+            case BitHubSource.DigitalP8: return pins.digitalReadPin(DigitalPin.P8)
+            case BitHubSource.DigitalP16: return pins.digitalReadPin(DigitalPin.P16)
+            default: return 0
+        }
     }
 
     /** Soros sor végéről a kocsivissza levágása (CRLF kezelés). */

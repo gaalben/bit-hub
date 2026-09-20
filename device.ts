@@ -20,6 +20,7 @@ namespace bithub {
         slot: number
         code: string
         dir: string          // i | o | a | v
+        source: BitHubSource // honnan olvassa magát (szenzornál)
         needsPower: boolean
         pin: number
         value: number
@@ -33,6 +34,7 @@ namespace bithub {
             this.slot = slot
             this.code = code
             this.dir = dir
+            this.source = BitHubSource.Manual
             this.needsPower = false
             this.pin = -1
             this.value = 0
@@ -62,7 +64,8 @@ namespace bithub {
     }
 
     function addModule(slot: number, code: string, dir: string,
-                       needsPower: boolean, pin: number): void {
+                       needsPower: boolean, pin: number,
+                       source: BitHubSource): void {
         if (_modules.length >= MAX_MODULES) return
         slot = Math.constrain(Math.round(slot), 1, MAX_MODULES)
         let m = findModule(slot)
@@ -75,6 +78,12 @@ namespace bithub {
         }
         m.needsPower = needsPower
         m.pin = pin
+        // Ha beépített forrást kért, de ehhez a típushoz nincs (pl.
+        // talajnedvesség), csendben kézi módra váltunk — a diák a
+        // jelentés blokkal adhatja meg az értéket.
+        m.source = (source == BitHubSource.Builtin && !hasBuiltin(code))
+            ? BitHubSource.Manual
+            : source
         // Új modul jött a bemutatkozás UTÁN → jelentkezzünk be újra,
         // különben a szerver nem tudna róla.
         _acked = false
@@ -146,7 +155,17 @@ namespace bithub {
             const now = input.runningTime()
             for (let i = 0; i < _modules.length; i++) {
                 const m = _modules[i]
-                if (m.dir != "i" || !m.hasValue) continue
+                if (m.dir != "i") continue
+
+                // Önálló olvasás: a bejelentésnél megadott forrásból.
+                // Így a diáknak nem kell ciklust írnia, és a helyszámot sem
+                // kell másodszor eltalálnia.
+                if (m.source != BitHubSource.Manual) {
+                    m.value = readSource(m.source, m.code)
+                    m.hasValue = true
+                }
+
+                if (!m.hasValue) continue
                 const changed = m.value != m.sentValue
                     && Math.abs(m.value - m.sentValue) >= m.minChange
                 const overdue = now - m.sentAt >= m.maxIntervalMs
@@ -211,21 +230,27 @@ namespace bithub {
     }
 
     /**
-     * Announces a sensor. This is what makes its tile appear on the dashboard.
+     * Announces a sensor and says where to read it from. This is what makes
+     * its tile appear on the dashboard. With any source other than "manual"
+     * the value is read and reported on its own — no loop needed.
      * @param slot the module position on the device, 1-8
      * @param kind the sensor type
+     * @param source where the value comes from
      */
     //% blockId=bithub_declare_sensor
-    //% block="announce sensor | slot %slot | type %kind"
-    //% block.loc.hu="szenzor bejelentése | hely %slot | típus %kind"
-    //% jsdoc.loc.hu="Bejelent egy szenzort. A felületen ettől jelenik meg a csempéje."
+    //% block="announce sensor | slot %slot | type %kind | source %source"
+    //% block.loc.hu="szenzor bejelentése | hely %slot | típus %kind | forrás %source"
+    //% jsdoc.loc.hu="Bejelent egy szenzort, és megmondja, honnan olvassa. A felületen ettől jelenik meg a csempéje. A „kézi” kivételével minden forrásnál magától olvas és jelent — nem kell ciklust írni hozzá."
     //% slot.loc.hu="a modul helye az eszközön, 1-8"
     //% kind.loc.hu="a szenzor típusa"
+    //% source.loc.hu="honnan jön az érték"
     //% slot.min=1 slot.max=8 slot.defl=1
+    //% source.defl=BitHubSource.Builtin
     //% weight=90 blockGap=8
     //% group="Modules"
-    export function declareSensor(slot: number, kind: BitHubSensor): void {
-        addModule(slot, sensorCode(kind), "i", false, -1)
+    export function declareSensor(slot: number, kind: BitHubSensor,
+                                  source: BitHubSource): void {
+        addModule(slot, sensorCode(kind), "i", false, -1, source)
     }
 
     /**
@@ -250,7 +275,8 @@ namespace bithub {
     //% group="Modules"
     export function declareActuator(slot: number, kind: BitHubActuator,
                                     pin: DigitalPin, power: boolean): void {
-        addModule(slot, actuatorCode(kind), actuatorDir(kind), power, pin)
+        addModule(slot, actuatorCode(kind), actuatorDir(kind), power, pin,
+            BitHubSource.Manual)
     }
 
     /**
@@ -271,7 +297,12 @@ namespace bithub {
     //% group="Sending"
     export function report(slot: number, value: number): void {
         const m = findModule(slot)
-        if (!m) return
+        if (!m) {
+            // Nem bejelentett helyre jelentettünk — elgépelt helyszám.
+            // Korábban ez NÉMÁN eldobódott; most látszik a kijelzőn.
+            basic.showString("?", 60)
+            return
+        }
         m.value = value
         m.hasValue = true
     }
