@@ -66,9 +66,19 @@ namespace bithub {
     function addModule(slot: number, code: string, dir: string,
                        needsPower: boolean, pin: number,
                        source: BitHubSource): void {
-        if (_modules.length >= MAX_MODULES) return
-        slot = Math.constrain(Math.round(slot), 1, MAX_MODULES)
+        slot = Math.round(slot)
+        // A slot egy jegyű marad, hogy a 19 karakteres keret ne szakadjon
+        // szét. Korábban itt csendes csonkolás volt — az két modult
+        // ugyanarra a helyre tett volna, némán. Most inkább látszik.
+        if (slot < 1 || slot > MAX_MODULES) {
+            basic.showString("?", 60)
+            return
+        }
         let m = findModule(slot)
+        if (!m && _modules.length >= MAX_MODULES) {
+            basic.showString("?", 60)
+            return
+        }
         if (!m) {
             m = new Module(slot, code, dir)
             _modules.push(m)
@@ -189,6 +199,29 @@ namespace bithub {
     // --- blokkok ---------------------------------------------------------
 
     /**
+     * A modulok legördülője. A diák elnevezi a modult ("homerseklet",
+     * "talaj", "pumpa"), a MakeCode pedig sorszámot rendel hozzá 1-től —
+     * ez lesz a protokoll slot-mezője. Így a számot sehol nem kell kézzel
+     * beírni: a bejelentésnél és a jelentésnél is a NEVE látszik.
+     *
+     * A "Add a new module..." opció a legördülő alján hoz létre újat.
+     */
+    //% shim=ENUM_GET
+    //% blockId=bithub_module_shim
+    //% block="module $arg"
+    //% block.loc.hu="modul $arg"
+    //% enumName="BitHubModules"
+    //% enumMemberName="module"
+    //% enumPromptHint="e.g. temperature, soil, pump ..."
+    //% enumPromptHint.loc.hu="pl. homerseklet, talaj, pumpa ..."
+    //% enumInitialMembers="sensor1"
+    //% enumStartValue=1
+    //% blockHidden=true
+    export function _moduleEnumShim(arg: number): number {
+        return arg
+    }
+
+    /**
      * Starts the bit:hub device: sets up the radio and begins announcing itself.
      * @param device the device id within the room, 1-99
      * @param room the room (radio group), 0-255
@@ -238,13 +271,13 @@ namespace bithub {
      * @param source where the value comes from
      */
     //% blockId=bithub_declare_sensor
-    //% block="announce sensor | slot %slot | type %kind | source %source"
-    //% block.loc.hu="szenzor bejelentése | hely %slot | típus %kind | forrás %source"
+    //% block="announce sensor | %slot | type %kind | source %source"
+    //% block.loc.hu="szenzor bejelentése | %slot | típus %kind | forrás %source"
     //% jsdoc.loc.hu="Bejelent egy szenzort, és megmondja, honnan olvassa. A felületen ettől jelenik meg a csempéje. A „kézi” kivételével minden forrásnál magától olvas és jelent — nem kell ciklust írni hozzá."
-    //% slot.loc.hu="a modul helye az eszközön, 1-8"
+    //% slot.loc.hu="melyik modul (a legördülőből, vagy hozz létre újat)"
     //% kind.loc.hu="a szenzor típusa"
     //% source.loc.hu="honnan jön az érték"
-    //% slot.min=1 slot.max=8 slot.defl=1
+    //% slot.shadow="bithub_module_shim"
     //% source.defl=BitHubSource.Builtin
     //% weight=90 blockGap=8
     //% group="Modules"
@@ -262,14 +295,14 @@ namespace bithub {
      * @param power true if it needs an external power supply
      */
     //% blockId=bithub_declare_actuator
-    //% block="announce actuator | slot %slot | type %kind | pin %pin | needs external power %power"
-    //% block.loc.hu="aktuátor bejelentése | hely %slot | típus %kind | láb %pin | külső táp kell %power"
+    //% block="announce actuator | %slot | type %kind | pin %pin | needs external power %power"
+    //% block.loc.hu="aktuátor bejelentése | %slot | típus %kind | láb %pin | külső táp kell %power"
     //% jsdoc.loc.hu="Bejelent egy aktuátort. A „külső táp kell” jelzést a felület kiírja a csempére — motor és pumpa a micro:bit lábáról közvetlenül NEM megy."
-    //% slot.loc.hu="a modul helye az eszközön, 1-8"
+    //% slot.loc.hu="melyik modul (a legördülőből, vagy hozz létre újat)"
     //% kind.loc.hu="az aktuátor típusa"
     //% pin.loc.hu="melyik lábon van"
     //% power.loc.hu="igaz, ha külső tápot igényel"
-    //% slot.min=1 slot.max=8 slot.defl=3
+    //% slot.shadow="bithub_module_shim"
     //% power.shadow="toggleYesNo"
     //% weight=85 blockGap=8
     //% group="Modules"
@@ -287,12 +320,12 @@ namespace bithub {
      * @param value the measured value
      */
     //% blockId=bithub_report
-    //% block="bit:hub report | slot %slot | value %value"
-    //% block.loc.hu="bit:hub jelentés | hely %slot | érték %value"
+    //% block="bit:hub report | %slot | value %value"
+    //% block.loc.hu="bit:hub jelentés | %slot | érték %value"
     //% jsdoc.loc.hu="Megadja egy szenzor friss értékét. Nem küld azonnal: a bit:hub akkor továbbítja, ha az érték változott, vagy lejárt a maximális időköz. Ezért nyugodtan hívható sűrűn, ciklusban."
-    //% slot.loc.hu="melyik modul értéke"
+    //% slot.loc.hu="melyik modul értéke (a legördülőből)"
     //% value.loc.hu="a mért érték"
-    //% slot.min=1 slot.max=8 slot.defl=1
+    //% slot.shadow="bithub_module_shim"
     //% weight=80 blockGap=8
     //% group="Sending"
     export function report(slot: number, value: number): void {
@@ -314,13 +347,13 @@ namespace bithub {
      * @param maxSeconds report at least this often even without a change
      */
     //% blockId=bithub_set_reporting
-    //% block="bit:hub reporting | slot %slot | on change of %minChange | at least every %maxSeconds s"
-    //% block.loc.hu="bit:hub jelentési ütem | hely %slot | küldés ennyi változásra %minChange | legalább ennyi másodpercenként %maxSeconds"
+    //% block="bit:hub reporting | %slot | on change of %minChange | at least every %maxSeconds s"
+    //% block.loc.hu="bit:hub jelentési ütem | %slot | küldés ennyi változásra %minChange | legalább ennyi másodpercenként %maxSeconds"
     //% jsdoc.loc.hu="Finomhangolja, milyen sűrűn jelent egy modul."
     //% slot.loc.hu="melyik modul"
     //% minChange.loc.hu="ennyivel kell változnia, hogy azonnal menjen"
     //% maxSeconds.loc.hu="ennyi másodpercenként akkor is jelent, ha nem változott"
-    //% slot.min=1 slot.max=8 slot.defl=1
+    //% slot.shadow="bithub_module_shim"
     //% maxSeconds.min=1 maxSeconds.max=300 maxSeconds.defl=5
     //% weight=70
     //% advanced=true group="Sending"

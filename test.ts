@@ -5,7 +5,11 @@
 // ---------------------------------------------------------------
 // 1. PÉLDA — ESZKÖZ, ciklus nélkül
 // A forrást a bejelentésnél adjuk meg EGYSZER, onnantól magától olvas
-// és jelent. Nincs forever, és a helyszámot sem kell kétszer eltalálni.
+// és jelent. Nincs forever.
+//
+// Blokk-nézetben a modul helyén NEM szám látszik, hanem a diák által
+// adott NÉV a legördülőben ("homerseklet", "talaj", ...). Itt, a szöveges
+// nézetben a mögöttes sorszám szerepel — a kettő ugyanaz.
 // ---------------------------------------------------------------
 bithub.start(1, 1)
 bithub.declareSensor(1, BitHubSensor.Temperature, BitHubSource.Builtin)

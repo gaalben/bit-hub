@@ -17,8 +17,10 @@ https://github.com/gaalben/bit-hub
 
 ### Eszköz (a diák micro:bitje)
 
-A forrást a bejelentésnél adod meg **egyszer** — onnantól magától olvas
-és jelent, ciklus nélkül:
+A modult **névvel** választod a legördülőből (a „Add a new module…" opcióval
+hozol létre újat, pl. `homerseklet`, `talaj`, `pumpa`) — sorszámot sehol nem
+kell beírni, azt a MakeCode rendeli hozzá. A forrást a bejelentésnél adod meg
+**egyszer**, onnantól magától olvas és jelent, ciklus nélkül:
 
 ```blocks
 bithub.start(1, 1)
