@@ -20,7 +20,6 @@ namespace bithub {
         slot: number
         code: string
         dir: string          // i | o | a | v
-        source: BitHubSource // honnan olvassa magát (szenzornál)
         needsPower: boolean
         pin: number
         value: number
@@ -34,7 +33,6 @@ namespace bithub {
             this.slot = slot
             this.code = code
             this.dir = dir
-            this.source = BitHubSource.Manual
             this.needsPower = false
             this.pin = -1
             this.value = 0
@@ -64,8 +62,7 @@ namespace bithub {
     }
 
     function addModule(slot: number, code: string, dir: string,
-                       needsPower: boolean, pin: number,
-                       source: BitHubSource): void {
+                       needsPower: boolean, pin: number): void {
         slot = Math.round(slot)
         // A slot egy jegyű marad, hogy a 19 karakteres keret ne szakadjon
         // szét. Korábban itt csendes csonkolás volt — az két modult
@@ -79,24 +76,30 @@ namespace bithub {
             basic.showString("?", 60)
             return
         }
+
+        // IDEMPOTENS: ugyanazt a bejelentést akárhányszor meg lehet ismételni.
+        // Ez azért fontos, mert a diákok gyakran az "állandóan" ciklusba
+        // teszik a bejelentést — ha minden kör újraindítaná a bemutatkozást,
+        // az eszköz sosem jutna el a jelentésig.
+        let changed = false
         if (!m) {
             m = new Module(slot, code, dir)
             _modules.push(m)
-        } else {
+            changed = true
+        } else if (m.code != code || m.dir != dir) {
             m.code = code
             m.dir = dir
+            changed = true
         }
-        m.needsPower = needsPower
+        if (m.needsPower != needsPower) {
+            m.needsPower = needsPower
+            changed = true
+        }
         m.pin = pin
-        // Ha beépített forrást kért, de ehhez a típushoz nincs (pl.
-        // talajnedvesség), csendben kézi módra váltunk — a diák a
-        // jelentés blokkal adhatja meg az értéket.
-        m.source = (source == BitHubSource.Builtin && !hasBuiltin(code))
-            ? BitHubSource.Manual
-            : source
-        // Új modul jött a bemutatkozás UTÁN → jelentkezzünk be újra,
-        // különben a szerver nem tudna róla.
-        _acked = false
+
+        // Csak VALÓDI változásnál jelentkezünk be újra, különben a szerver
+        // nem tudna az új modulról.
+        if (changed) _acked = false
     }
 
     /** Egy sor kiküldése rádión, a 19 karakteres kerettel. */
@@ -165,17 +168,7 @@ namespace bithub {
             const now = input.runningTime()
             for (let i = 0; i < _modules.length; i++) {
                 const m = _modules[i]
-                if (m.dir != "i") continue
-
-                // Önálló olvasás: a bejelentésnél megadott forrásból.
-                // Így a diáknak nem kell ciklust írnia, és a helyszámot sem
-                // kell másodszor eltalálnia.
-                if (m.source != BitHubSource.Manual) {
-                    m.value = readSource(m.source, m.code)
-                    m.hasValue = true
-                }
-
-                if (!m.hasValue) continue
+                if (m.dir != "i" || !m.hasValue) continue
                 const changed = m.value != m.sentValue
                     && Math.abs(m.value - m.sentValue) >= m.minChange
                 const overdue = now - m.sentAt >= m.maxIntervalMs
@@ -265,27 +258,23 @@ namespace bithub {
     }
 
     /**
-     * Announces a sensor and says where to read it from. This is what makes
-     * its tile appear on the dashboard. With any source other than "manual"
-     * the value is read and reported on its own — no loop needed.
-     * @param slot the module position on the device, 1-8
+     * Announces a sensor. This is what makes its tile appear on the dashboard.
+     * Put it at the start, once per sensor; the values come from the report
+     * block. Repeating the same announcement is harmless.
+     * @param slot which module
      * @param kind the sensor type
-     * @param source where the value comes from
      */
     //% blockId=bithub_declare_sensor
-    //% block="announce sensor | %slot | type %kind | source %source"
-    //% block.loc.hu="szenzor bejelentése | %slot | típus %kind | forrás %source"
-    //% jsdoc.loc.hu="Bejelent egy szenzort, és megmondja, honnan olvassa. A felületen ettől jelenik meg a csempéje. A „kézi” kivételével minden forrásnál magától olvas és jelent — nem kell ciklust írni hozzá."
+    //% block="announce sensor | %slot | type %kind"
+    //% block.loc.hu="szenzor bejelentése | %slot | típus %kind"
+    //% jsdoc.loc.hu="Bejelent egy szenzort. A felületen ettől jelenik meg a csempéje. A program elejére való, szenzoronként egyszer; az értéket a jelentés blokk adja. Ugyanazt a bejelentést megismételni ártalmatlan."
     //% slot.loc.hu="melyik modul (a legördülőből, vagy hozz létre újat)"
     //% kind.loc.hu="a szenzor típusa"
-    //% source.loc.hu="honnan jön az érték"
     //% slot.shadow="bithub_module_shim"
-    //% source.defl=BitHubSource.Builtin
     //% weight=90 blockGap=8
     //% group="Modules"
-    export function declareSensor(slot: number, kind: BitHubSensor,
-                                  source: BitHubSource): void {
-        addModule(slot, sensorCode(kind), "i", false, -1, source)
+    export function declareSensor(slot: number, kind: BitHubSensor): void {
+        addModule(slot, sensorCode(kind), "i", false, -1)
     }
 
     /**
@@ -310,8 +299,7 @@ namespace bithub {
     //% group="Modules"
     export function declareActuator(slot: number, kind: BitHubActuator,
                                     pin: DigitalPin, power: boolean): void {
-        addModule(slot, actuatorCode(kind), actuatorDir(kind), power, pin,
-            BitHubSource.Manual)
+        addModule(slot, actuatorCode(kind), actuatorDir(kind), power, pin)
     }
 
     /**

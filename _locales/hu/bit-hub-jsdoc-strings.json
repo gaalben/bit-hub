@@ -4,7 +4,7 @@
     "bithub.start|param|device": "az eszköz sorszáma a szobán belül, 1-99",
     "bithub.start|param|room": "a szoba (rádiócsoport), 0-255",
     "bithub.connected": "Igaz, ha a hub már nyugtázta a bemutatkozásunkat. Jó ikont rajzolni vele, hogy a diák lássa: bent vagyunk-e a rendszerben.",
-    "bithub.declareSensor": "Bejelent egy szenzort, és megmondja, honnan olvassa. A felületen ettől jelenik meg a csempéje. A „kézi” kivételével minden forrásnál magától olvas és jelent — nem kell ciklust írni hozzá.",
+    "bithub.declareSensor": "Bejelent egy szenzort. A felületen ettől jelenik meg a csempéje. A program elejére való, szenzoronként egyszer; az értéket a jelentés blokk adja. Ugyanazt a bejelentést megismételni ártalmatlan.",
     "bithub.declareSensor|param|slot": "melyik modul (a legördülőből, vagy hozz létre újat)",
     "bithub.declareSensor|param|kind": "a szenzor típusa",
     "bithub.declareActuator": "Bejelent egy aktuátort. A „külső táp kell” jelzést a felület kiírja a csempére — motor és pumpa a micro:bit lábáról közvetlenül NEM megy.",
@@ -20,6 +20,5 @@
     "bithub.setReporting|param|minChange": "ennyivel kell változnia, hogy azonnal menjen",
     "bithub.setReporting|param|maxSeconds": "ennyi másodpercenként akkor is jelent, ha nem változott",
     "bithub.startHub": "Elindítja a HUB módot: a rádión hallott sorokat kiírja a soros portra, a soros porton kapott sorokat pedig továbbküldi rádión.",
-    "bithub.startHub|param|room": "a szoba (rádiócsoport), 0-255",
-    "bithub.declareSensor|param|source": "honnan jön az érték"
+    "bithub.startHub|param|room": "a szoba (rádiócsoport), 0-255"
 }

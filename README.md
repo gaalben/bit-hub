@@ -18,28 +18,27 @@ https://github.com/gaalben/bit-hub
 ### Eszköz (a diák micro:bitje)
 
 A modult **névvel** választod a legördülőből (a „Add a new module…" opcióval
-hozol létre újat, pl. `homerseklet`, `talaj`, `pumpa`) — sorszámot sehol nem
-kell beírni, azt a MakeCode rendeli hozzá. A forrást a bejelentésnél adod meg
-**egyszer**, onnantól magától olvas és jelent, ciklus nélkül:
+hozol létre újat, pl. `hőmérő`, `talaj`, `pumpa`) — sorszámot sehol nem kell
+beírni, azt a MakeCode rendeli hozzá. A bejelentés a program elejére való,
+szenzoronként egyszer; az értéket a `jelentés` blokk adja:
 
 ```blocks
 bithub.start(1, 1)
-bithub.declareSensor(1, BitHubSensor.Temperature, BitHubSource.Builtin)
-bithub.declareSensor(2, BitHubSensor.SoilMoisture, BitHubSource.AnalogP0)
-```
+bithub.declareSensor(1, BitHubSensor.Temperature)
+bithub.declareSensor(2, BitHubSensor.SoilMoisture)
 
-Ha olyan értéket akarsz küldeni, amit a micro:bit nem tud magától olvasni
-(pl. két szenzor különbsége), válaszd a **kézi** forrást, és add meg a
-`jelentés` blokkal:
-
-```blocks
-bithub.start(1, 1)
-bithub.declareSensor(1, BitHubSensor.OtherSensor, BitHubSource.Manual)
 basic.forever(function () {
-    bithub.report(1, input.acceleration(Dimension.X))
+    bithub.report(1, input.temperature())
+    bithub.report(2, pins.analogReadPin(AnalogPin.P0))
     basic.pause(500)
 })
 ```
+
+A `jelentés` blokk **nem küld azonnal**: eltárolja az értéket, és a bit:hub
+akkor továbbítja, ha változott, vagy lejárt a maximális időköz (alapból
+5 másodperc). Ezért nyugodtan hívható sűrűn.
+
+A bejelentés **idempotens** — ha az „állandóan" ciklusba kerül, az sem baj.
 
 ### Hub (egy külön micro:bit, USB-n a géphez kötve)
 
