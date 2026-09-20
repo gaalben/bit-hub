@@ -11,7 +11,7 @@
 /**
  * bit:hub — IoT devices with the micro:bit.
  */
-//% color=#1E88E5 icon="" block="bit:hub"
+//% color=#9a4f28 icon="\uf1eb" block="bit:hub"
 //% jsdoc.loc.hu="bit:hub — IoT-eszközök micro:bittel."
 //% groups='["Setup", "Modules", "Sending", "Hub"]'
 namespace bithub {
