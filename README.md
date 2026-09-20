@@ -61,6 +61,16 @@ a `bit-hub-terv.md` 3. fejezete.
 | `~` | életjel | `~7,150,4` |
 | `A` | nyugta (hub → eszköz) | `A7,9412` |
 
+## Nyelvek
+
+A blokkok **angolul és magyarul** érhetők el. A forrás angol, a magyar fordítás a
+`block.loc.hu` / `jsdoc.loc.hu` annotációkban van a kód mellett — ez a megbízható
+út GitHubról betöltött bővítménynél (a `_locales/` mappa elsősorban a beépített
+bővítmények útja, de a teljesség kedvéért az is itt van).
+
+**A magyar blokkfeliratokhoz a MakeCode nyelvét magyarra kell állítani**
+(fogaskerék → Language → Magyar), és a bővítményt újra betölteni.
+
 ## Állapot
 
 **0.0.1 — 1. lépés:** bemutatkozás, modul-deklaráció, jelentés, hub-mód.

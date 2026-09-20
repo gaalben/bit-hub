@@ -9,9 +9,10 @@
 // A vezérlés (parancsok, szabályok) a 4-5. lépésben kerül ide.
 
 /**
- * bit:hub — IoT-eszközök micro:bittel.
+ * bit:hub — IoT devices with the micro:bit.
  */
 //% color=#1E88E5 icon="" block="bit:hub"
+//% jsdoc.loc.hu="bit:hub — IoT-eszközök micro:bittel."
 //% groups='["Setup", "Modules", "Sending", "Hub"]'
 namespace bithub {
 
@@ -169,12 +170,16 @@ namespace bithub {
     // --- blokkok ---------------------------------------------------------
 
     /**
-     * Elindítja a bit:hub eszközt: beállítja a rádiót és elkezd bemutatkozni.
-     * @param device az eszköz azonosítója a szobán belül, 1-99
-     * @param room a szoba (rádiócsoport), 0-255
+     * Starts the bit:hub device: sets up the radio and begins announcing itself.
+     * @param device the device id within the room, 1-99
+     * @param room the room (radio group), 0-255
      */
     //% blockId=bithub_start
     //% block="bit:hub start | device %device | room %room"
+    //% block.loc.hu="bit:hub indítása | eszköz %device | szoba %room"
+    //% jsdoc.loc.hu="Elindítja a bit:hub eszközt: beállítja a rádiót és elkezd bemutatkozni."
+    //% device.loc.hu="az eszköz azonosítója a szobán belül, 1-99"
+    //% room.loc.hu="a szoba (rádiócsoport), 0-255"
     //% device.min=1 device.max=99 device.defl=1
     //% room.min=0 room.max=255 room.defl=1
     //% weight=100 blockGap=8
@@ -192,11 +197,13 @@ namespace bithub {
     }
 
     /**
-     * Igaz, ha a hub már nyugtázta a bemutatkozásunkat.
-     * Jó ikont rajzolni vele, hogy a diák lássa: bent vagyunk-e a rendszerben.
+     * True if the hub has acknowledged our announcement.
+     * Useful for showing an icon so the student can see whether we are in.
      */
     //% blockId=bithub_connected
     //% block="bit:hub connected"
+    //% block.loc.hu="bit:hub csatlakozva"
+    //% jsdoc.loc.hu="Igaz, ha a hub már nyugtázta a bemutatkozásunkat. Jó ikont rajzolni vele, hogy a diák lássa: bent vagyunk-e a rendszerben."
     //% weight=95
     //% group="Setup"
     export function connected(): boolean {
@@ -204,12 +211,16 @@ namespace bithub {
     }
 
     /**
-     * Bejelent egy szenzort. A felületen ettől jelenik meg a csempéje.
-     * @param slot a modul helye az eszközön, 1-8
-     * @param kind a szenzor típusa
+     * Announces a sensor. This is what makes its tile appear on the dashboard.
+     * @param slot the module position on the device, 1-8
+     * @param kind the sensor type
      */
     //% blockId=bithub_declare_sensor
     //% block="announce sensor | slot %slot | type %kind"
+    //% block.loc.hu="szenzor bejelentése | hely %slot | típus %kind"
+    //% jsdoc.loc.hu="Bejelent egy szenzort. A felületen ettől jelenik meg a csempéje."
+    //% slot.loc.hu="a modul helye az eszközön, 1-8"
+    //% kind.loc.hu="a szenzor típusa"
     //% slot.min=1 slot.max=8 slot.defl=1
     //% weight=90 blockGap=8
     //% group="Modules"
@@ -218,15 +229,21 @@ namespace bithub {
     }
 
     /**
-     * Bejelent egy aktuátort. A "külső táp kell" jelzést a felület kiírja
-     * a csempére — motor és pumpa a micro:bit lábáról közvetlenül NEM megy.
-     * @param slot a modul helye az eszközön, 1-8
-     * @param kind az aktuátor típusa
-     * @param pin melyik lábon van
-     * @param power igaz, ha külső tápot igényel
+     * Announces an actuator. The dashboard shows the "needs external power"
+     * flag on the tile — a motor or pump cannot run off a micro:bit pin.
+     * @param slot the module position on the device, 1-8
+     * @param kind the actuator type
+     * @param pin which pin it is wired to
+     * @param power true if it needs an external power supply
      */
     //% blockId=bithub_declare_actuator
     //% block="announce actuator | slot %slot | type %kind | pin %pin | needs external power %power"
+    //% block.loc.hu="aktuátor bejelentése | hely %slot | típus %kind | láb %pin | külső táp kell %power"
+    //% jsdoc.loc.hu="Bejelent egy aktuátort. A „külső táp kell” jelzést a felület kiírja a csempére — motor és pumpa a micro:bit lábáról közvetlenül NEM megy."
+    //% slot.loc.hu="a modul helye az eszközön, 1-8"
+    //% kind.loc.hu="az aktuátor típusa"
+    //% pin.loc.hu="melyik lábon van"
+    //% power.loc.hu="igaz, ha külső tápot igényel"
     //% slot.min=1 slot.max=8 slot.defl=3
     //% power.shadow="toggleYesNo"
     //% weight=85 blockGap=8
@@ -237,14 +254,18 @@ namespace bithub {
     }
 
     /**
-     * Megadja egy szenzor friss értékét. Nem küld azonnal: a bit:hub akkor
-     * továbbítja, ha az érték változott, vagy lejárt a maximális időköz.
-     * Ezért nyugodtan hívható sűrűn, ciklusban.
-     * @param slot melyik modul értéke
-     * @param value a mért érték
+     * Gives a sensor its latest value. It is not sent immediately: bit:hub
+     * forwards it when the value has changed or the maximum interval elapsed.
+     * So it is safe to call often, inside a loop.
+     * @param slot which module the value belongs to
+     * @param value the measured value
      */
     //% blockId=bithub_report
     //% block="bit:hub report | slot %slot | value %value"
+    //% block.loc.hu="bit:hub jelentés | hely %slot | érték %value"
+    //% jsdoc.loc.hu="Megadja egy szenzor friss értékét. Nem küld azonnal: a bit:hub akkor továbbítja, ha az érték változott, vagy lejárt a maximális időköz. Ezért nyugodtan hívható sűrűn, ciklusban."
+    //% slot.loc.hu="melyik modul értéke"
+    //% value.loc.hu="a mért érték"
     //% slot.min=1 slot.max=8 slot.defl=1
     //% weight=80 blockGap=8
     //% group="Sending"
@@ -256,13 +277,18 @@ namespace bithub {
     }
 
     /**
-     * Finomhangolja, milyen sűrűn jelent egy modul.
-     * @param slot melyik modul
-     * @param minChange ennyivel kell változnia, hogy azonnal menjen; eg.: 0.5
-     * @param maxSeconds ennyi másodpercenként akkor is jelent, ha nem változott
+     * Fine-tunes how often a module reports.
+     * @param slot which module
+     * @param minChange the value must change this much to be sent at once; eg: 0.5
+     * @param maxSeconds report at least this often even without a change
      */
     //% blockId=bithub_set_reporting
     //% block="bit:hub reporting | slot %slot | on change of %minChange | at least every %maxSeconds s"
+    //% block.loc.hu="bit:hub jelentési ütem | hely %slot | küldés ennyi változásra %minChange | legalább ennyi másodpercenként %maxSeconds"
+    //% jsdoc.loc.hu="Finomhangolja, milyen sűrűn jelent egy modul."
+    //% slot.loc.hu="melyik modul"
+    //% minChange.loc.hu="ennyivel kell változnia, hogy azonnal menjen"
+    //% maxSeconds.loc.hu="ennyi másodpercenként akkor is jelent, ha nem változott"
     //% slot.min=1 slot.max=8 slot.defl=1
     //% maxSeconds.min=1 maxSeconds.max=300 maxSeconds.defl=5
     //% weight=70

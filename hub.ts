@@ -14,12 +14,15 @@ namespace bithub {
     let _hubRunning = false
 
     /**
-     * Elindítja a HUB módot: a rádión hallott sorokat kiírja a soros portra,
-     * a soros porton kapott sorokat pedig továbbküldi rádión.
-     * @param room a szoba (rádiócsoport), 0-255
+     * Starts HUB mode: writes every line heard on the radio to the serial
+     * port, and sends every line received on serial out over the radio.
+     * @param room the room (radio group), 0-255
      */
     //% blockId=bithub_start_hub
     //% block="bit:hub start HUB | room %room"
+    //% block.loc.hu="bit:hub HUB mód indítása | szoba %room"
+    //% jsdoc.loc.hu="Elindítja a HUB módot: a rádión hallott sorokat kiírja a soros portra, a soros porton kapott sorokat pedig továbbküldi rádión."
+    //% room.loc.hu="a szoba (rádiócsoport), 0-255"
     //% room.min=0 room.max=255 room.defl=1
     //% weight=60
     //% group="Hub"

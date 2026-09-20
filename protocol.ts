@@ -12,24 +12,34 @@
  */
 enum BitHubSensor {
     //% block="temperature"
+    //% block.loc.hu="hőmérséklet"
     Temperature = 1,
     //% block="light"
+    //% block.loc.hu="fény"
     Light = 2,
     //% block="humidity"
+    //% block.loc.hu="páratartalom"
     Humidity = 3,
     //% block="soil moisture"
+    //% block.loc.hu="talajnedvesség"
     SoilMoisture = 4,
     //% block="distance"
+    //% block.loc.hu="távolság"
     Distance = 5,
     //% block="sound"
+    //% block.loc.hu="hang"
     Sound = 6,
     //% block="acceleration"
+    //% block.loc.hu="gyorsulás"
     Acceleration = 7,
     //% block="button"
+    //% block.loc.hu="gomb"
     Button = 8,
     //% block="potentiometer"
+    //% block.loc.hu="potméter"
     Potentiometer = 9,
     //% block="other"
+    //% block.loc.hu="egyéb"
     OtherSensor = 10
 }
 
@@ -38,20 +48,28 @@ enum BitHubSensor {
  */
 enum BitHubActuator {
     //% block="LED"
+    //% block.loc.hu="LED"
     Led = 1,
     //% block="relay"
+    //% block.loc.hu="relé"
     Relay = 2,
     //% block="pump"
+    //% block.loc.hu="pumpa"
     Pump = 3,
     //% block="servo"
+    //% block.loc.hu="szervo"
     Servo = 4,
     //% block="motor"
+    //% block.loc.hu="motor"
     Motor = 5,
     //% block="buzzer"
+    //% block.loc.hu="zsongor"
     Buzzer = 6,
     //% block="LED matrix"
+    //% block.loc.hu="LED-mátrix"
     Matrix = 7,
     //% block="other"
+    //% block.loc.hu="egyéb"
     OtherActuator = 8
 }
 
