@@ -1,5 +1,5 @@
 {
-    "bithub.start|block": "bit:hub indítása | eszköz %device | szoba %room",
+    "bithub.start|block": "bit:hub indítása | eszköz sorszáma %device | szoba %room",
     "bithub.connected|block": "bit:hub csatlakozva",
     "bithub.declareSensor|block": "szenzor bejelentése | %slot | típus %kind | forrás %source",
     "BitHubSource.Builtin|block": "beépített szenzor",

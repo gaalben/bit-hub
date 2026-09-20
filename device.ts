@@ -223,14 +223,16 @@ namespace bithub {
 
     /**
      * Starts the bit:hub device: sets up the radio and begins announcing itself.
-     * @param device the device id within the room, 1-99
+     * The device number must be unique within the room — two devices with the
+     * same number would write to the same tile on the dashboard.
+     * @param device the device number within the room, 1-99
      * @param room the room (radio group), 0-255
      */
     //% blockId=bithub_start
-    //% block="bit:hub start | device %device | room %room"
-    //% block.loc.hu="bit:hub indítása | eszköz %device | szoba %room"
-    //% jsdoc.loc.hu="Elindítja a bit:hub eszközt: beállítja a rádiót és elkezd bemutatkozni."
-    //% device.loc.hu="az eszköz azonosítója a szobán belül, 1-99"
+    //% block="bit:hub start | device number %device | room %room"
+    //% block.loc.hu="bit:hub indítása | eszköz sorszáma %device | szoba %room"
+    //% jsdoc.loc.hu="Elindítja a bit:hub eszközt: beállítja a rádiót és elkezd bemutatkozni. Az eszköz sorszámának a szobán belül egyedinek kell lennie — két azonos sorszámú eszköz ugyanarra a csempére írna."
+    //% device.loc.hu="az eszköz sorszáma a szobán belül, 1-99"
     //% room.loc.hu="a szoba (rádiócsoport), 0-255"
     //% device.min=1 device.max=99 device.defl=1
     //% room.min=0 room.max=255 room.defl=1
