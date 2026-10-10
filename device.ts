@@ -5,8 +5,10 @@
 //   2. jelenti a mért értékeket — de csak akkor, ha VÁLTOZTAK, vagy lejárt a
 //      maximális időköz (report by exception: ettől bírja a rádió 15 eszközzel)
 //   3. életjelet ad, ha sokáig nincs más forgalma
+//   4. végrehajtja a felületről jövő parancsot (>), és az új állapotot
+//      eseménnyel (*) azonnal visszajelzi — ez egyben a parancs nyugtája
 //
-// A vezérlés (parancsok, szabályok) a 4-5. lépésben kerül ide.
+// A szabályok az 5. lépésben kerülnek ide.
 
 /**
  * bit:hub — IoT devices with the micro:bit.
@@ -28,6 +30,13 @@ namespace bithub {
         minChange: number
         maxIntervalMs: number
         hasValue: boolean
+        holdUntil: number    // ideiglenes parancs lejárta (futásidő, ms); 0 = nincs
+        holdBack: number     // az érték, amire a lejártakor visszaáll
+        builtIn: number      // BitHubBuiltIn, ha a micro:bit beépített része; 0 = nem az
+        pins: number[]       // további lábak (pl. a közlekedési lámpa három LED-je)
+        pinValues: number[]  // melyik láb melyik értéknél aktív
+        progSet: boolean     // a program kapcsolta-e már (bithub.setActuator)
+        progValue: number    // a program legutóbbi döntése
 
         constructor(slot: number, code: string, dir: string) {
             this.slot = slot
@@ -41,6 +50,13 @@ namespace bithub {
             this.minChange = 0
             this.maxIntervalMs = DEFAULT_MAX_INTERVAL_MS
             this.hasValue = false
+            this.holdUntil = 0
+            this.holdBack = 0
+            this.builtIn = 0
+            this.pins = []
+            this.pinValues = []
+            this.progSet = false
+            this.progValue = 0
         }
     }
 
@@ -51,6 +67,10 @@ namespace bithub {
     let _lastTxAt = 0
     let _rulesVersion = 0
     let _modules: Module[] = []
+    // Parancskezelők, modulhelyenként. Külön listában, hogy a "ha parancs
+    // érkezik" blokk a bejelentés ELŐTT is állhasson a programban.
+    let _cmdSlots: number[] = []
+    let _cmdHandlers: ((value: number) => void)[] = []
 
     // --- belső segédek ---------------------------------------------------
 
@@ -84,6 +104,14 @@ namespace bithub {
         let changed = false
         if (!m) {
             m = new Module(slot, code, dir)
+            if (dir != "i") {
+                // Az aktuátor állását is jelentjük: egyszer rögtön a nyugta
+                // után (hogy a csempén ne "nincs jel" álljon), aztán ritkán,
+                // hogy egy elveszett esemény se ragadjon be a felületen.
+                m.hasValue = true
+                m.maxIntervalMs = ACTUATOR_REFRESH_MS
+                m.sentAt = 0 - ACTUATOR_REFRESH_MS
+            }
             _modules.push(m)
             changed = true
         } else if (m.code != code || m.dir != dir) {
@@ -109,6 +137,85 @@ namespace bithub {
         _lastTxAt = input.runningTime()
     }
 
+    // --- aktuátorok ------------------------------------------------------
+
+    function findHandler(slot: number): (value: number) => void {
+        for (let i = 0; i < _cmdSlots.length; i++) {
+            if (_cmdSlots[i] == slot) return _cmdHandlers[i]
+        }
+        return null
+    }
+
+    /**
+     * Az aktuátor tényleges meghajtása. Ha a diák adott "ha parancs érkezik"
+     * blokkot, AZ dönt; különben a micro:bit beépített részét (hangszóró,
+     * LED-kijelző) vagy a bejelentett lábat állítjuk.
+     */
+    function drive(m: Module): void {
+        const handler = findHandler(m.slot)
+        if (handler) {
+            // Külön szálon: a diák kódja akár dallamot is játszhat, attól
+            // a rádió vétele nem állhat meg.
+            const v = m.value
+            control.inBackground(function () {
+                handler(v)
+            })
+            return
+        }
+        if (m.builtIn == BitHubBuiltIn.Speaker) {
+            // Folyamatos hang, amíg ki nem kapcsolják; 0 Hz = csend.
+            // (Beépített hangszóró csak a v2-n van; v1-en a hang a P0-ra megy.)
+            music.ringTone(m.value > 0 ? BUILTIN_TONE_HZ : 0)
+            return
+        }
+        if (m.builtIn == BitHubBuiltIn.Display) {
+            // Nem ikont rajzolunk: a showIcon várakozik, és addig a parancs
+            // nyugtája sem menne ki.
+            if (m.value > 0) {
+                for (let x = 0; x < 5; x++) {
+                    for (let y = 0; y < 5; y++) led.plot(x, y)
+                }
+            } else {
+                basic.clearScreen()
+            }
+            return
+        }
+        // További lábak: mindegyik akkor aktív, amikor az aktuátor értéke
+        // épp az övé (közlekedési lámpa: 1 = piros, 2 = sárga, 3 = zöld).
+        for (let i = 0; i < m.pins.length; i++) {
+            pins.digitalWritePin(m.pins[i], m.value == m.pinValues[i] ? 1 : 0)
+        }
+        if (m.pin < 0) return
+        if (m.dir == "o") {
+            pins.digitalWritePin(m.pin, m.value > 0 ? 1 : 0)
+        } else if (m.dir == "a") {
+            pins.analogWritePin(m.pin, Math.constrain(Math.round(m.value), 0, 1023))
+        } else if (m.dir == "v") {
+            pins.servoWritePin(m.pin, Math.constrain(Math.round(m.value), 0, 180))
+        }
+    }
+
+    /**
+     * Aktuátor átállítása + esemény AZONNAL (nem várja az ütemet).
+     * A parancsra nincs külön nyugta: az új állapot jelentése a nyugta.
+     * Ok: m = kézi parancs, t = ideiglenes parancs lejárt, p = az eszköz
+     * saját programja kapcsolta.
+     */
+    function applyActuator(m: Module, value: number, reason: string): void {
+        m.value = value
+        drive(m)
+        sendEvent(m, reason)
+    }
+
+    /** Az aktuátor mostani állása eseményként (*), a megadott okkal. */
+    function sendEvent(m: Module, reason: string): void {
+        const head = "*" + _deviceId + "," + m.slot + ","
+        const tail = "," + reason + "," + seconds()
+        tx(head + fitNumber(m.value, MAX_LINE - head.length - tail.length) + tail)
+        m.sentValue = m.value
+        m.sentAt = input.runningTime()
+    }
+
     // --- bejövő üzenetek -------------------------------------------------
 
     function onRadioString(received: string): void {
@@ -121,8 +228,23 @@ namespace bithub {
         if (kind == "A") {
             // A<id>,<szerveridő> — a hub vette a bemutatkozásunkat
             _acked = true
+        } else if (kind == ">") {
+            // ><id>,<slot>,<érték>,<tartás_mp> — kézi parancs a felületről.
+            // Ha a tartás nem nulla, ennyi másodperc múlva visszaáll a
+            // korábbi értékre (pl. tűzjelző-próba: 3 mp-ig szól, aztán csend).
+            if (parts.length < 3) return
+            const m = findModule(parseInt(parts[1]))
+            if (!m || m.dir == "i") return
+            const value = parseFloat(parts[2])
+            if (isNaN(value)) return
+            const hold = parts.length > 3 ? parseInt(parts[3]) : 0
+            // Futó ideiglenes parancs alatt az EREDETI értéket őrizzük meg,
+            // különben az ismételt próba "bekapcsolva" állapotra állna vissza.
+            if (m.holdUntil == 0) m.holdBack = m.value
+            m.holdUntil = hold > 0 ? input.runningTime() + hold * 1000 : 0
+            applyActuator(m, value, "m")
         }
-        // A >, R, M, X üzenetek a 4-5. lépésben kerülnek ide.
+        // Az R, Q, M, X üzenetek az 5-6. lépésben kerülnek ide.
     }
 
     // --- háttérszálak ----------------------------------------------------
@@ -168,11 +290,30 @@ namespace bithub {
     function reportLoop(): void {
         while (_running) {
             basic.pause(100)
-            if (!_acked) continue
             const now = input.runningTime()
+            // Lejárt ideiglenes parancsok — ez a hubtól függetlenül is fut:
+            // a szóló zsongor akkor is elhallgat, ha közben megszakadt a kapcsolat.
             for (let i = 0; i < _modules.length; i++) {
                 const m = _modules[i]
-                if (m.dir != "i" || !m.hasValue) continue
+                if (m.holdUntil > 0 && now >= m.holdUntil) {
+                    m.holdUntil = 0
+                    applyActuator(m, m.holdBack, "t")
+                }
+            }
+            if (!_acked) continue
+            for (let i = 0; i < _modules.length; i++) {
+                const m = _modules[i]
+                if (!m.hasValue) continue
+                // A program által állított aktuátor (pl. potméterrel hajtott
+                // motor) folyamatosan változhat: a legfrissebb állását
+                // eseményként küldjük, de ritkítva, hogy a rádió bírja.
+                if (m.dir != "i" && m.value != m.sentValue
+                    && Math.abs(m.value - m.sentValue) >= m.minChange
+                    && now - m.sentAt >= ACTUATOR_MIN_EVENT_MS) {
+                    sendEvent(m, "p")
+                    basic.pause(Math.randomRange(10, 40))   // ütközés-jitter
+                    continue
+                }
                 const changed = m.value != m.sentValue
                     && Math.abs(m.value - m.sentValue) >= m.minChange
                 const overdue = now - m.sentAt >= m.maxIntervalMs
@@ -304,6 +445,165 @@ namespace bithub {
     export function declareActuator(slot: number, kind: BitHubActuator,
                                     pin: DigitalPin, power: boolean): void {
         addModule(slot, actuatorCode(kind), actuatorDir(kind), power, pin)
+    }
+
+    /**
+     * Announces a built-in part of the micro:bit as an actuator, so it can be
+     * switched from the dashboard: the speaker sounds a tone, the LED display
+     * lights up. No wiring and no extra code is needed.
+     * @param slot which module
+     * @param what which built-in part of the micro:bit
+     */
+    //% blockId=bithub_declare_builtin
+    //% block="announce built-in actuator | %slot | %what"
+    //% block.loc.hu="beépített aktuátor bejelentése | %slot | %what"
+    //% jsdoc.loc.hu="Bejelenti a micro:bit egy beépített részét aktuátorként, hogy a felületről kapcsolni lehessen: a hangszóró megszólal, a LED-kijelző kigyullad. Nem kell hozzá se vezeték, se külön kód."
+    //% slot.loc.hu="melyik modul (a legördülőből, vagy hozz létre újat)"
+    //% what.loc.hu="a micro:bit melyik beépített része"
+    //% slot.shadow="bithub_module_shim"
+    //% weight=84 blockGap=8
+    //% group="Modules"
+    export function declareBuiltIn(slot: number, what: BitHubBuiltIn): void {
+        addModule(slot, what == BitHubBuiltIn.Speaker ? "buz" : "mtx", "o", false, -1)
+        const m = findModule(Math.round(slot))
+        if (m) m.builtIn = what
+    }
+
+    /**
+     * Announces a traffic light: three LEDs on three pins, shown as ONE tile
+     * on the dashboard. Its value is 0 = dark, 1 = red, 2 = yellow, 3 = green.
+     * @param slot which module
+     * @param red the pin of the red LED
+     * @param yellow the pin of the yellow LED
+     * @param green the pin of the green LED
+     */
+    //% blockId=bithub_declare_traffic_light
+    //% block="announce traffic light | %slot | red %red | yellow %yellow | green %green"
+    //% block.loc.hu="közlekedési lámpa bejelentése | %slot | piros %red | sárga %yellow | zöld %green"
+    //% jsdoc.loc.hu="Bejelent egy közlekedési lámpát: három LED három lábon, a felületen EGY csempeként. Az értéke 0 = sötét, 1 = piros, 2 = sárga, 3 = zöld."
+    //% slot.loc.hu="melyik modul (a legördülőből, vagy hozz létre újat)"
+    //% red.loc.hu="a piros LED lába"
+    //% yellow.loc.hu="a sárga LED lába"
+    //% green.loc.hu="a zöld LED lába"
+    //% slot.shadow="bithub_module_shim"
+    //% red.defl=DigitalPin.P0 yellow.defl=DigitalPin.P1 green.defl=DigitalPin.P2
+    //% weight=83 blockGap=8
+    //% group="Modules"
+    export function declareTrafficLight(slot: number, red: DigitalPin,
+                                        yellow: DigitalPin, green: DigitalPin): void {
+        addModule(slot, "tlt", "o", false, -1)
+        addPin(slot, red, 1)
+        addPin(slot, yellow, 2)
+        addPin(slot, green, 3)
+    }
+
+    /**
+     * Adds one more pin to an actuator. The pin is on while the actuator has
+     * the given value and off otherwise — so one actuator can drive several
+     * pins. Announce the actuator first.
+     * @param slot which actuator
+     * @param pin the extra pin
+     * @param value the actuator value at which this pin is on; eg: 1
+     */
+    //% blockId=bithub_add_pin
+    //% block="add pin | to %slot | pin %pin | on at value %value"
+    //% block.loc.hu="további láb | ehhez: %slot | láb %pin | ennél az értéknél aktív %value"
+    //% jsdoc.loc.hu="Még egy lábat ad egy aktuátorhoz. A láb akkor aktív, amikor az aktuátor értéke a megadott érték, különben kikapcsol — így egy aktuátor több lábat is hajthat. Előbb jelentsd be az aktuátort."
+    //% slot.loc.hu="melyik aktuátor (a legördülőből)"
+    //% pin.loc.hu="a további láb"
+    //% value.loc.hu="az aktuátor melyik értékénél legyen aktív ez a láb"
+    //% slot.shadow="bithub_module_shim"
+    //% weight=82 blockGap=8
+    //% group="Modules"
+    export function addPin(slot: number, pin: DigitalPin, value: number): void {
+        const m = findModule(Math.round(slot))
+        if (!m || m.dir == "i") {
+            basic.showString("?", 60)
+            return
+        }
+        // IDEMPOTENS, ahogy a bejelentés is: ciklusban sem halmozódik.
+        for (let i = 0; i < m.pins.length; i++) {
+            if (m.pins[i] == pin) {
+                m.pinValues[i] = value
+                return
+            }
+        }
+        m.pins.push(pin)
+        m.pinValues.push(value)
+        pins.digitalWritePin(pin, m.value == value ? 1 : 0)
+    }
+
+    /**
+     * Sets an actuator from your own program and reports the new state to
+     * the dashboard right away. Works for every kind: on/off, analog (PWM)
+     * and servo. Safe to call in a loop: it only acts when the value changes.
+     * @param slot which actuator
+     * @param value on/off: 0 or 1; analog: 0-1023; servo: 0-180 degrees; traffic light: 0-3; eg: 1
+     */
+    //% blockId=bithub_set_actuator
+    //% block="bit:hub set | %slot | to %value"
+    //% block.loc.hu="bit:hub kapcsolás | %slot | értéke %value"
+    //% jsdoc.loc.hu="A saját programodból állít egy aktuátort, és az új állapotot rögtön jelenti a felületnek. Minden fajtára jó: ki/be, analóg (PWM) és szervo. Nyugodtan hívható ciklusban: csak akkor tesz bármit, ha a kért érték megváltozik."
+    //% slot.loc.hu="melyik aktuátor (a legördülőből)"
+    //% value.loc.hu="ki/be: 0 vagy 1; analóg: 0-1023; szervo: 0-180 fok; közlekedési lámpa: 0-3"
+    //% slot.shadow="bithub_module_shim"
+    //% weight=81 blockGap=8
+    //% group="Modules"
+    export function setActuator(slot: number, value: number): void {
+        const m = findModule(Math.round(slot))
+        if (!m || m.dir == "i") {
+            basic.showString("?", 60)
+            return
+        }
+        // A program ÉLRE kapcsol: amíg a döntése nem változik, nem ír felül
+        // semmit. Így a felületről adott kézi parancs megmarad a program
+        // következő váltásáig, akkor is, ha ez a blokk ciklusban fut.
+        if (m.progSet && m.progValue == value) return
+        m.progSet = true
+        m.progValue = value
+        if (m.holdUntil > 0) {
+            // Ideiglenes kézi parancs fut: annak lejártakor erre áll vissza.
+            m.holdBack = value
+            return
+        }
+        if (m.value == value) return
+        // A lábat AZONNAL állítjuk; a jelentést ritkítjuk. Ha az előző
+        // esemény óta túl kevés idő telt el, a jelentő szál küldi el a
+        // legfrissebb állást — így egy folyamatosan változó analóg érték
+        // sem árasztja el a rádiót.
+        m.value = value
+        drive(m)
+        if (input.runningTime() - m.sentAt >= ACTUATOR_MIN_EVENT_MS) {
+            sendEvent(m, "p")
+        }
+    }
+
+    /**
+     * Runs your code when a command for this actuator arrives from the
+     * dashboard — for when switching a pin is not enough (a melody, an
+     * animation). If an actuator has this block, bit:hub does not drive it itself.
+     * @param slot which module the command is for
+     * @param handler the code to run; value is the commanded value
+     */
+    //% blockId=bithub_on_command
+    //% block="on bit:hub command | for %slot"
+    //% block.loc.hu="ha bit:hub parancs érkezik | ide: %slot"
+    //% jsdoc.loc.hu="Lefuttatja a kódodat, ha a felületről parancs érkezik erre az aktuátorra. Akkor kell, ha egy láb kapcsolása kevés (dallam, animáció). Ha egy aktuátorhoz van ilyen blokk, azt a bit:hub nem állítja magától."
+    //% slot.loc.hu="melyik modulnak szól a parancs (a legördülőből)"
+    //% slot.shadow="bithub_module_shim"
+    //% draggableParameters="reporter"
+    //% weight=79 blockGap=8
+    //% group="Modules"
+    export function onCommand(slot: number, handler: (value: number) => void): void {
+        slot = Math.round(slot)
+        for (let i = 0; i < _cmdSlots.length; i++) {
+            if (_cmdSlots[i] == slot) {
+                _cmdHandlers[i] = handler
+                return
+            }
+        }
+        _cmdSlots.push(slot)
+        _cmdHandlers.push(handler)
     }
 
     /**

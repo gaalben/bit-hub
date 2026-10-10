@@ -47,6 +47,12 @@ def telemetry(dev, slot, value, t):
     return head + fit_number(value, MAX_LINE - len(head) - len(tail)) + tail
 
 
+def event(dev, slot, value, reason, t):
+    head = "*%d,%d," % (dev, slot)
+    tail = ",%s,%d" % (reason, t % TIME_MOD)
+    return head + fit_number(value, MAX_LINE - len(head) - len(tail)) + tail
+
+
 CASES = []
 
 # --- hello: !id,modulszam,ido
@@ -71,6 +77,14 @@ for dev in (1, 7, 99):
         for v in VALUES:
             for t in (0, 65535):
                 CASES.append(("telem", telemetry(dev, slot, v, t)))
+
+# --- esemeny: *id,slot,ertek,ok,ido - az aktuator uj allasa, egyben a parancs nyugtaja
+for dev in (1, 99):
+    for slot in (1, 8):
+        for v in (0, 1, 180, 1023, 0.5, -123.456):
+            for reason in ("r", "m", "t", "b", "p"):
+                for t in (0, 65535):
+                    CASES.append(("event", event(dev, slot, v, reason, t)))
 
 # --- eletjel: ~id,ido,szabalyverzio
 for dev in (1, 99):

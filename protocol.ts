@@ -73,6 +73,18 @@ enum BitHubActuator {
     OtherActuator = 8
 }
 
+/**
+ * A micro:bit beépített részei, amelyek aktuátorként kapcsolhatók.
+ */
+enum BitHubBuiltIn {
+    //% block="speaker"
+    //% block.loc.hu="hangszóró"
+    Speaker = 1,
+    //% block="LED display"
+    //% block.loc.hu="LED-kijelző"
+    Display = 2
+}
+
 namespace bithub {
     // --- protokoll-állandók ---------------------------------------------
 
@@ -80,6 +92,12 @@ namespace bithub {
     export const MAX_MODULES = 8        // eszközönként (a gyakorlati plafon 3-4)
     export const HEARTBEAT_MS = 10000   // életjel, ha nincs más forgalom
     export const DEFAULT_MAX_INTERVAL_MS = 5000
+    // Az aktuátor állását az esemény (*) viszi azonnal; ez csak a ritka
+    // frissítés, hogy egy elveszett esemény se ragadjon be a felületen.
+    export const ACTUATOR_REFRESH_MS = 30000
+    // A program által állított aktuátor legfeljebb ilyen sűrűn küld eseményt.
+    export const ACTUATOR_MIN_EVENT_MS = 250
+    export const BUILTIN_TONE_HZ = 880  // a beépített hangszóró hangja (A5)
 
     // Az időmező körbefordul 65536 másodpercenként (18,2 óra), hogy legfeljebb
     // 5 karakter legyen. Az átjáró a SAJÁT órájából tekeri vissza az abszolút
