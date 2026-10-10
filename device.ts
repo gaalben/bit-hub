@@ -292,7 +292,7 @@ namespace bithub {
             basic.pause(100)
             const now = input.runningTime()
             // Lejárt ideiglenes parancsok — ez a hubtól függetlenül is fut:
-            // a szóló zsongor akkor is elhallgat, ha közben megszakadt a kapcsolat.
+            // a szóló hangszóró akkor is elhallgat, ha közben megszakadt a kapcsolat.
             for (let i = 0; i < _modules.length; i++) {
                 const m = _modules[i]
                 if (m.holdUntil > 0 && now >= m.holdUntil) {

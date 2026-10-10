@@ -63,7 +63,7 @@ enum BitHubActuator {
     //% block.loc.hu="motor"
     Motor = 5,
     //% block="buzzer"
-    //% block.loc.hu="zsongor"
+    //% block.loc.hu="hangszóró"
     Buzzer = 6,
     //% block="LED matrix"
     //% block.loc.hu="LED-mátrix"

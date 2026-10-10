@@ -29,7 +29,7 @@ basic.forever(function () {
 // ---------------------------------------------------------------
 // 3. PÉLDA — TŰZJELZŐ: hőmérő + a micro:bit BEÉPÍTETT hangszórója és
 // LED-kijelzője mint aktuátor. Semmit nem kell rákötni: a felületen a
-// csempén kapcsolhatók, a zsongor "Próba" gombja pedig 3 mp-re
+// csempén kapcsolhatók, a hangszóró "Próba" gombja pedig 3 mp-re
 // megszólaltatja, aztán az eszköz magától elhallgat.
 // A riasztást az ESZKÖZ dönti el (30 fok fölött szól) — a "kapcsolás"
 // blokk miatt ez a felületen is azonnal látszik.

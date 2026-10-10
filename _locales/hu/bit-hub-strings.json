@@ -26,7 +26,7 @@
     "BitHubActuator.Pump|block": "pumpa",
     "BitHubActuator.Servo|block": "szervo",
     "BitHubActuator.Motor|block": "motor",
-    "BitHubActuator.Buzzer|block": "zsongor",
+    "BitHubActuator.Buzzer|block": "hangszóró",
     "BitHubActuator.Matrix|block": "LED-mátrix",
     "BitHubActuator.OtherActuator|block": "egyéb",
     "BitHubBuiltIn.Speaker|block": "hangszóró",

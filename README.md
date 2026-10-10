@@ -83,7 +83,7 @@ blokkban a saját kódod dönt — ilyenkor a bit:hub nem nyúl az aktuátorhoz.
 
 A parancsra nincs külön nyugta: az eszköz az **új állapotot** jelenti vissza,
 a felület ebből tudja, hogy a kapcsolás megtörtént. Az ideiglenes parancs
-(pl. a zsongor „Próba" gombja) a megadott másodperc után magától visszaáll.
+(pl. a hangszóró „Próba" gombja) a megadott másodperc után magától visszaáll.
 
 ### Hub (egy külön micro:bit, USB-n a géphez kötve)
 
