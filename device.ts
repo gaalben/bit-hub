@@ -145,7 +145,11 @@ namespace bithub {
             attempt = attempt + 1
             tx("!" + _deviceId + "," + _modules.length + "," + seconds())
             basic.pause(300)
-            for (let i = 0; i < _modules.length && !_acked; i++) {
+            // A deklarációk MINDIG kimennek a hello után, akkor is, ha közben
+            // megjött a nyugta. A hub ezredmásodpercek alatt nyugtáz, tehát a
+            // "csak nyugta nélkül" feltétellel a modulok típusa SOSEM jutott el
+            // a felületre — minden csempe "egyéb" lett.
+            for (let i = 0; i < _modules.length; i++) {
                 const m = _modules[i]
                 let line = "#" + _deviceId + "," + m.slot + "," + m.code + "," + m.dir
                 if (m.needsPower) line = line + ",p"
